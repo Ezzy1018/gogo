@@ -74,7 +74,7 @@ export const FALLBACK_ICE_SERVERS: RTCIceServer[] = [
 
 // ---------- Connection ----------
 export const PARTYKIT_HOST =
-  (import.meta as any)?.env?.VITE_PARTYKIT_HOST ?? "127.0.0.1:1999"
+  import.meta.env.VITE_PARTYKIT_HOST || "127.0.0.1:1999"
 
 export const DEFAULT_ROOM = "office"
 export const IDENTITY_KEY = "gathera-identity-v2"
