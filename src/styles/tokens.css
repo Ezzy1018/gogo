@@ -1,0 +1,320 @@
+/* ==========================================================================
+   Gathera design tokens. Art Bible s3.3.
+   This is the ONLY place a colour, radius, shadow or duration may be defined.
+   If you are about to type a hex value anywhere else, stop.
+   ========================================================================== */
+
+:root {
+  /* ---------- parchment (warm base) ---------- */
+  --parchment-50: #fdf8ee;
+  --parchment-100: #f8eeda;
+  --parchment-200: #f2dfbc;
+  --parchment-300: #e8c994;
+  --parchment-400: #ddb273;
+
+  /* ---------- ink (warm dark) ---------- */
+  --ink-900: #2a1d14;
+  --ink-800: #3d2b1e;
+  --ink-700: #4a3428;
+  --ink-600: #6b5340;
+  --ink-400: #9a8570;
+
+  /* ---------- wood ---------- */
+  --wood-500: #a9713f;
+  --wood-600: #8b5a2b;
+
+  /* ---------- teal (the single cool accent) ---------- */
+  --teal-300: #5fc7c0;
+  --teal-500: #2e8b8b;
+  --teal-600: #1f6b6b;
+
+  /* ---------- nature ---------- */
+  --leaf-400: #7cbf4a;
+  --leaf-600: #4e8b2e;
+  --water-400: #3fc6d8;
+  --water-600: #2189a0;
+
+  /* ---------- signals ---------- */
+  --amber-400: #f2a93b;
+  --clay-500: #d8623f;
+  --moss-500: #6fa83c;
+
+  /* ---------- semantic ---------- */
+  --surface: var(--parchment-100);
+  --surface-raised: #fffcf4;
+  --surface-sunken: var(--parchment-200);
+  --border: rgba(74, 52, 40, 0.16);
+  --border-strong: rgba(74, 52, 40, 0.34);
+  --text: var(--ink-900);
+  --text-muted: var(--ink-600);
+  --text-faint: var(--ink-400);
+  --accent: var(--teal-500);
+  --accent-hover: var(--teal-600);
+  --accent-soft: rgba(46, 139, 139, 0.12);
+  --danger: var(--clay-500);
+  --success: var(--moss-500);
+  --warning: var(--amber-400);
+
+  /* ---------- shadows: warm brown, never grey ---------- */
+  --shadow-sm: 0 1px 2px rgba(74, 52, 40, 0.1);
+  --shadow-md: 0 4px 10px rgba(74, 52, 40, 0.14);
+  --shadow-lg: 0 12px 32px rgba(74, 52, 40, 0.2);
+  --shadow-glow: 0 0 0 3px var(--accent-soft);
+
+  /* ---------- radius ---------- */
+  --r-sm: 8px;
+  --r-md: 14px;
+  --r-lg: 22px;
+  --r-pill: 999px;
+
+  /* ---------- spacing ---------- */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-8: 48px;
+
+  /* ---------- motion ---------- */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --t-fast: 140ms;
+  --t-base: 220ms;
+  --t-slow: 380ms;
+
+  /* ---------- type ---------- */
+  --font-ui: "Nunito", system-ui, -apple-system, sans-serif;
+  --font-pixel: "Silkscreen", "Courier New", monospace;
+  --fs-xs: 11px;
+  --fs-sm: 13px;
+  --fs-md: 15px;
+  --fs-lg: 18px;
+  --fs-xl: 24px;
+  --fs-2xl: 32px;
+
+  /* ---------- layers ---------- */
+  --z-world: 0;
+  --z-hud: 900;
+  --z-panel: 950;
+  --z-modal: 1000;
+  --z-toast: 1100;
+
+  /* ---------- minimap zone fills (warm, never cool grey) ---------- */
+  --map-work: rgba(46, 139, 139, 0.28);
+  --map-meeting: rgba(130, 86, 138, 0.32);
+  --map-kitchen: rgba(216, 98, 63, 0.28);
+  --map-lounge: rgba(242, 169, 59, 0.32);
+  --map-focus: rgba(78, 139, 46, 0.3);
+  --map-entrance: rgba(169, 113, 63, 0.35);
+  --map-desk: rgba(46, 139, 139, 0.45);
+  --map-floor: var(--parchment-200);
+  --map-you: var(--moss-500);
+  --map-other: var(--ink-700);
+  --map-away: var(--amber-400);
+}
+
+/* ==========================================================================
+   Reset
+   ========================================================================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-ui);
+  font-weight: 500;
+  font-size: var(--fs-md);
+  color: var(--text);
+  background: var(--parchment-200);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* The world must never be smoothed. This one line matters more than it looks. */
+canvas {
+  display: block;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-glow);
+  border-radius: var(--r-sm);
+}
+
+/* ==========================================================================
+   Shared primitives
+   ========================================================================== */
+
+.panel {
+  background: var(--surface);
+  border: 2px solid var(--ink-700);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-md);
+}
+
+.panel--raised {
+  background: var(--surface-raised);
+}
+
+.pixel {
+  font-family: var(--font-pixel);
+  letter-spacing: 0.02em;
+}
+
+.overlay-root {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-hud);
+  pointer-events: none;
+}
+
+.overlay-root > * {
+  pointer-events: auto;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  padding: 10px 18px;
+  border-radius: var(--r-sm);
+  border: 2px solid var(--ink-700);
+  background: var(--surface-raised);
+  color: var(--text);
+  font-weight: 700;
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--t-fast) var(--ease-out),
+    background var(--t-fast) var(--ease-out), box-shadow var(--t-fast) var(--ease-out);
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--parchment-200);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn--primary {
+  background: var(--accent);
+  color: var(--parchment-50);
+  border-color: var(--teal-600);
+}
+
+.btn--primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.btn--danger {
+  background: var(--danger);
+  color: var(--parchment-50);
+  border-color: #a8452c;
+}
+
+.input {
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: var(--r-sm);
+  border: 2px solid var(--border-strong);
+  background: var(--surface-raised);
+  transition: border-color var(--t-fast) var(--ease-out), box-shadow var(--t-fast) var(--ease-out);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: var(--shadow-glow);
+}
+
+.scroll {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--parchment-400) transparent;
+}
+
+.scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scroll::-webkit-scrollbar-thumb {
+  background: var(--parchment-400);
+  border-radius: var(--r-pill);
+}
+
+@keyframes gathera-pop {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes gathera-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes gathera-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

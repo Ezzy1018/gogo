@@ -1,0 +1,72 @@
+[
+  {
+    "id": "work",
+    "name": "Work Floor",
+    "x": 2,
+    "y": 3,
+    "w": 29,
+    "h": 19,
+    "private": false,
+    "icon": "\ud83d\udcbb"
+  },
+  {
+    "id": "meeting",
+    "name": "Meeting Room",
+    "x": 34,
+    "y": 3,
+    "w": 23,
+    "h": 12,
+    "private": true,
+    "icon": "\ud83c\udf99\ufe0f"
+  },
+  {
+    "id": "kitchen",
+    "name": "Kitchen Nook",
+    "x": 2,
+    "y": 25,
+    "w": 16,
+    "h": 9,
+    "private": false,
+    "icon": "\u2615"
+  },
+  {
+    "id": "lounge",
+    "name": "Lounge",
+    "x": 20,
+    "y": 25,
+    "w": 19,
+    "h": 11,
+    "private": false,
+    "icon": "\ud83d\udecb\ufe0f"
+  },
+  {
+    "id": "focus",
+    "name": "Focus Booth",
+    "x": 44,
+    "y": 20,
+    "w": 9,
+    "h": 8,
+    "private": true,
+    "icon": "\ud83e\uddd8"
+  },
+  {
+    "id": "entrance",
+    "name": "Entrance",
+    "x": 26,
+    "y": 34,
+    "w": 9,
+    "h": 4,
+    "private": false,
+    "icon": "\ud83d\udeaa"
+  },
+  {
+    "id": "desk",
+    "name": "Your Desk",
+    "x": 4,
+    "y": 6,
+    "w": 8,
+    "h": 4,
+    "private": false,
+    "icon": "\ud83c\udfe0"
+  }
+]

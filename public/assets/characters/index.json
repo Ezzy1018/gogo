@@ -1,0 +1,71 @@
+{
+  "frameWidth": 32,
+  "frameHeight": 48,
+  "frames": 16,
+  "dirs": [
+    "down",
+    "left",
+    "right",
+    "up"
+  ],
+  "layers": {
+    "skin": [
+      "light",
+      "medium",
+      "tan",
+      "deep"
+    ],
+    "hair": [
+      "short",
+      "messy",
+      "long",
+      "bun",
+      "curly",
+      "buzz"
+    ],
+    "hairColor": [
+      "dark",
+      "brown",
+      "light",
+      "ginger"
+    ],
+    "top": [
+      "sweater",
+      "shirt",
+      "hoodie",
+      "jacket",
+      "tee"
+    ],
+    "topColor": [
+      "blue",
+      "teal",
+      "clay",
+      "amber",
+      "moss",
+      "plum"
+    ],
+    "bottom": [
+      "jeans",
+      "trousers",
+      "skirt",
+      "shorts"
+    ],
+    "bottomColor": [
+      "indigo",
+      "charcoal",
+      "khaki"
+    ],
+    "shoes": [
+      "sneakers",
+      "boots",
+      "flats"
+    ],
+    "accessory": [
+      "none",
+      "glasses",
+      "headphones",
+      "cap",
+      "scarf"
+    ]
+  }
+}
