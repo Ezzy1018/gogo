@@ -1,17 +1,14 @@
 /**
- * Gathera realtime server. Runs on PartyKit / Cloudflare Durable Objects.
+ * Gathera realtime server. Runs on Cloudflare Durable Objects via PartyServer.
  *
  * Responsibilities:
- *   - authoritative player registry (identity, position, flags, host)
+ *   - authoritative player registry (identity, position, flags, host, desks)
  *   - fixed rate state broadcast
  *   - chat relay + short history
  *   - WebRTC signalling relay (it never touches media itself)
  *   - TURN credential minting at GET /ice
- *
- * It deliberately does NOT simulate movement. Clients are authoritative over
- * their own position; this is a trusted-team tool, not a competitive game.
  */
-import type * as Party from "partykit/server"
+import { Server, type Connection, routePartykitRequest } from "partyserver"
 import {
   SERVER_TICK_HZ,
   EVICT_MS,
@@ -31,7 +28,8 @@ import type {
 } from "../src/shared/types"
 import { DEFAULT_CHARACTER } from "../src/shared/types"
 
-type Env = {
+export type Env = {
+  Main: DurableObjectNamespace<GatheraServer>
   TURN_KEY_ID?: string
   TURN_KEY_API_TOKEN?: string
 }
@@ -48,28 +46,23 @@ const clampStr = (v: unknown, max: number, fallback = "") =>
 const num = (v: unknown, fallback = 0) =>
   typeof v === "number" && Number.isFinite(v) ? v : fallback
 
-export default class GatheraServer implements Party.Server {
+export class GatheraServer extends Server<Env> {
   players = new Map<string, PlayerState>()
   lastSeen = new Map<string, number>()
   history: ChatMessage[] = []
   timer: ReturnType<typeof setInterval> | null = null
   seq = 0
 
-  constructor(readonly room: Party.Room) {}
-
-  // ---------------- lifecycle ----------------
-
-  onConnect(conn: Party.Connection) {
+  onConnect(conn: Connection) {
     this.lastSeen.set(conn.id, Date.now())
     this.startLoop()
-    // The player is not announced until it sends `join` with a name.
   }
 
-  onClose(conn: Party.Connection) {
+  onClose(conn: Connection) {
     this.removePlayer(conn.id)
   }
 
-  onError(conn: Party.Connection) {
+  onError(conn: Connection) {
     this.removePlayer(conn.id)
   }
 
@@ -77,8 +70,7 @@ export default class GatheraServer implements Party.Server {
     const existed = this.players.delete(id)
     this.lastSeen.delete(id)
     if (existed) {
-      // Exclude the leaving id: PartyKit throws if we send on a closed socket.
-      this.broadcast({ t: "left", id }, [id])
+      this.sendBroadcast({ t: "left", id }, [id])
       this.ensureHost()
     }
     if (this.players.size === 0) this.stopLoop()
@@ -97,7 +89,6 @@ export default class GatheraServer implements Party.Server {
 
   private tick() {
     const now = Date.now()
-    // evict anyone whose heartbeat stopped. close() triggers onClose -> removePlayer.
     for (const [id, seen] of this.lastSeen) {
       if (now - seen > EVICT_MS) {
         const conn = this.getConnection(id)
@@ -106,16 +97,9 @@ export default class GatheraServer implements Party.Server {
       }
     }
     if (this.players.size === 0) return this.stopLoop()
-    this.broadcast({ t: "tick", players: [...this.players.values()], now })
+    this.sendBroadcast({ t: "tick", players: [...this.players.values()], now })
   }
 
-  private getConnection(id: string) {
-    return this.room.getConnection(id)
-  }
-
-  // ---------------- host ----------------
-
-  /** First joiner hosts. On leave it passes to the longest connected player. */
   private ensureHost() {
     const all = [...this.players.values()]
     if (all.length === 0) return
@@ -124,7 +108,6 @@ export default class GatheraServer implements Party.Server {
     next.isHost = true
   }
 
-  /** First free desk seat, or null when the office is full. */
   private claimDesk(exceptId?: string): number | null {
     const taken = new Set<number>()
     for (const p of this.players.values()) {
@@ -137,13 +120,11 @@ export default class GatheraServer implements Party.Server {
     return null
   }
 
-  // ---------------- messaging ----------------
-
-  private broadcast(msg: ServerMessage, without?: string[]) {
+  private sendBroadcast(msg: ServerMessage, without?: string[]) {
     try {
-      this.room.broadcast(JSON.stringify(msg), without)
+      this.broadcast(JSON.stringify(msg), without)
     } catch {
-      // A peer may already be mid-close; don't let that kill the room tick.
+      /* peer may already be mid-close */
     }
   }
 
@@ -151,8 +132,9 @@ export default class GatheraServer implements Party.Server {
     this.getConnection(id)?.send(JSON.stringify(msg))
   }
 
-  onMessage(raw: string, sender: Party.Connection) {
+  onMessage(sender: Connection, raw: string | ArrayBuffer) {
     this.lastSeen.set(sender.id, Date.now())
+    if (typeof raw !== "string") return
 
     let msg: ClientMessage
     try {
@@ -200,7 +182,7 @@ export default class GatheraServer implements Party.Server {
           history: this.history.slice(-CHAT_HISTORY),
           now: Date.now(),
         })
-        this.broadcast({ t: "joined", player }, [sender.id])
+        this.sendBroadcast({ t: "joined", player }, [sender.id])
         this.startLoop()
         return
       }
@@ -264,9 +246,8 @@ export default class GatheraServer implements Party.Server {
         if (message.scope === "room") {
           this.history.push(message)
           if (this.history.length > CHAT_HISTORY) this.history.shift()
-          this.broadcast({ t: "chat", message })
+          this.sendBroadcast({ t: "chat", message })
         } else {
-          // nearby chat is delivered only to the sender's current bubble
           const targets = Array.isArray(msg.nearbyIds) ? msg.nearbyIds : []
           this.send(sender.id, { t: "chat", message })
           for (const id of targets) {
@@ -287,13 +268,12 @@ export default class GatheraServer implements Party.Server {
 
       case "react": {
         if (!this.players.has(sender.id)) return
-        this.broadcast({ t: "react", from: sender.id, emoji: msg.emoji })
+        this.sendBroadcast({ t: "react", from: sender.id, emoji: msg.emoji })
         return
       }
 
       case "host": {
         const me = this.players.get(sender.id)
-        // Host powers are enforced here, never in the browser.
         if (!me?.isHost) {
           return this.send(sender.id, { t: "error", message: "Only the host can do that" })
         }
@@ -331,21 +311,16 @@ export default class GatheraServer implements Party.Server {
     }
   }
 
-  // ---------------- HTTP: TURN credentials ----------------
-
-  async onRequest(req: Party.Request) {
+  async onRequest(req: Request) {
     const url = new URL(req.url)
     if (req.method === "OPTIONS") return new Response(null, { headers: CORS })
     if (!url.pathname.endsWith("/ice")) {
       return new Response("Not found", { status: 404, headers: CORS })
     }
 
-    const env = this.room.env as Env
-    const keyId = env.TURN_KEY_ID
-    const token = env.TURN_KEY_API_TOKEN
+    const keyId = this.env.TURN_KEY_ID
+    const token = this.env.TURN_KEY_API_TOKEN
 
-    // No TURN configured: STUN only. Works on most home networks, fails on
-    // symmetric NAT and strict corporate firewalls. See README.
     if (!keyId || !token) {
       return Response.json({ iceServers: FALLBACK_ICE_SERVERS, turn: false }, { headers: CORS })
     }
@@ -370,3 +345,12 @@ export default class GatheraServer implements Party.Server {
     }
   }
 }
+
+export default {
+  async fetch(request: Request, env: Env): Promise<Response> {
+    return (
+      (await routePartykitRequest(request, env)) ||
+      new Response("Gathera realtime", { status: 200 })
+    )
+  },
+} satisfies ExportedHandler<Env>
