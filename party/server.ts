@@ -214,18 +214,7 @@ export class GatheraServer extends Server<Env> {
         if (typeof msg.speaking === "boolean") p.speaking = msg.speaking
         if (msg.presence === "active" || msg.presence === "away" || msg.presence === "idle") {
           p.presence = msg.presence as Presence
-          if (msg.presence === "away") {
-            const desk = getDesk(p.deskId)
-            if (desk) {
-              const seat = deskSeatPx(desk)
-              p.x = seat.x
-              p.y = seat.y
-              p.dir = desk.dir
-              p.moving = false
-              p.pose = "sit"
-              p.zoneId = "work"
-            }
-          }
+          // Away / active are status only. Sitting is client-driven via pose.
         }
         return
       }

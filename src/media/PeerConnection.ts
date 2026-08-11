@@ -101,16 +101,25 @@ export class Peer {
     if (!this.audioEl) {
       this.audioEl = document.createElement("audio")
       this.audioEl.autoplay = true
+      this.audioEl.setAttribute("playsinline", "true")
+      this.audioEl.muted = false
       this.audioEl.dataset.peer = this.id
       this.audioEl.style.display = "none"
       document.body.appendChild(this.audioEl)
     }
     if (this.audioEl.srcObject !== stream) {
       this.audioEl.srcObject = stream
-      void this.audioEl.play().catch(() => {
-        // Autoplay policy. The join click counts as a gesture, so this is rare.
-      })
     }
+    void this.audioEl.play().catch(() => {
+      // Autoplay may block until a gesture; PeerManager.resumeAudio retries.
+    })
+  }
+
+  /** Call from a user gesture so browsers allow remote audio. */
+  resumeAudio() {
+    if (!this.audioEl) return
+    this.audioEl.muted = false
+    void this.audioEl.play().catch(() => {})
   }
 
   /** 0 to 1. Driven by the proximity ramp every UI tick. */

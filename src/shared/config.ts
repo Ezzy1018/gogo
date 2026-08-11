@@ -47,11 +47,14 @@ export const IDLE_SIT_MS = 60_000
 export const IDLE_SLEEP_MS = 300_000
 
 // ---------- Minimap ----------
-/** Map is 60x40 tiles; these keep the HUD compact in the bottom-left. */
+/** Map is 60x40 tiles; HUD is a following window into that world. */
 export const MINIMAP_WIDTH_PX = 168
 export const MINIMAP_HEIGHT_PX = 112
 export const MAP_WIDTH_TILES = 60
 export const MAP_HEIGHT_TILES = 40
+/** How much of the office the minimap camera shows at once. */
+export const MINIMAP_VIEW_TILES_W = 22
+export const MINIMAP_VIEW_TILES_H = 15
 
 // ---------- Media constraints ----------
 export const AUDIO_CONSTRAINTS: MediaTrackConstraints = {

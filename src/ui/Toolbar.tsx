@@ -95,7 +95,7 @@ export function Toolbar(p: Props) {
         </Tool>
 
         <Tool
-          label="Away at desk"
+          label="Away"
           active={presence === "away"}
           onClick={() => p.onSetPresence("away")}
         >
@@ -103,7 +103,7 @@ export function Toolbar(p: Props) {
         </Tool>
 
         <Tool
-          label={deskId == null ? "No desk" : "Sit at desk"}
+          label={deskId == null ? "No desk" : "On desk"}
           active={presence === "idle"}
           disabled={deskId == null}
           onClick={p.onSitAtDesk}

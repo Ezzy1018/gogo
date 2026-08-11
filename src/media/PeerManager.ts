@@ -160,6 +160,11 @@ export class PeerManager {
     for (const id of [...this.peers.keys()]) this.close(id)
   }
 
+  /** Retry playing every remote audio element after a user gesture. */
+  resumeAudio() {
+    for (const peer of this.peers.values()) peer.resumeAudio()
+  }
+
   get count() {
     return this.peers.size
   }

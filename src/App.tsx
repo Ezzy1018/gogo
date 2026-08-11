@@ -89,7 +89,7 @@ export default function App() {
           x: me.x,
           y: me.y,
           dir: me.dir,
-          sit: me.pose === "sit" || me.presence === "idle" || me.presence === "away",
+          sit: me.pose === "sit" || me.presence === "idle",
         })
         if (me.deskId != null) {
           store.toast("Desk " + (me.deskId + 1) + " is yours — press E to sit", "success")
@@ -114,6 +114,7 @@ export default function App() {
         sendSignal: (to, data) => net.send({ t: "signal", to, data }),
       })
       void peerManager.setLocalStream(useStore.getState().localStream)
+      peerManager.resumeAudio()
       store.toast("Welcome to the office", "success")
     })
 
@@ -167,13 +168,32 @@ export default function App() {
   useEffect(() => {
     const store = useStore.getState()
 
-    const offMove = bridge.on("localMove", (m) => {
-      net.send({ t: "move", x: m.x, y: m.y, dir: m.dir, moving: m.moving, pose: m.pose, zoneId: m.zoneId })
-    })
-
     const offZone = bridge.on("zoneChanged", (zone) => {
       store.setZone(zone)
-      if (zone) store.toast(zone.icon + "  " + zone.name + (zone.private ? " - private" : ""), "info")
+    })
+
+    const offMove = bridge.on("localMove", (m) => {
+      net.send({ t: "move", x: m.x, y: m.y, dir: m.dir, moving: m.moving, pose: m.pose, zoneId: m.zoneId })
+      // Keep the local mirror fresh for minimap + proximity (don't wait on ticks).
+      const id = useStore.getState().myId
+      if (id) {
+        const prev = useStore.getState().players[id]
+        if (prev) {
+          useStore.getState().upsertPlayer({
+            ...prev,
+            x: m.x,
+            y: m.y,
+            dir: m.dir,
+            moving: m.moving,
+            pose: m.pose,
+            zoneId: m.zoneId,
+          })
+        }
+      }
+      if (m.moving && useStore.getState().presence === "idle") {
+        useStore.getState().setPresence("active")
+        net.send({ t: "flags", presence: "active" })
+      }
     })
 
     const offScreen = bridge.on("screenPositions", (positions) => {
@@ -241,6 +261,8 @@ export default function App() {
     localMedia.setEnabled("audio", next)
     store.setMic(next)
     net.send({ t: "flags", muted: !next })
+    // Re-unlock remote playback on the same user gesture that unmuted us.
+    peerManager.resumeAudio()
   }, [])
 
   const toggleCam = useCallback(() => {
@@ -274,22 +296,16 @@ export default function App() {
     const store = useStore.getState()
     store.setPresence(presence)
     net.send({ t: "flags", presence })
-    if (presence === "away") {
-      bridge.emit("sitAtDesk", true)
-      store.toast("You are away at your desk", "info")
-    } else if (presence === "active") {
-      bridge.emit("sitAtDesk", false)
-      store.toast("You are active again", "info")
-    } else {
-      bridge.emit("sitAtDesk", true)
-      store.toast("Idle at your desk", "info")
-    }
+    // Presence is a status badge only. Movement lock happens solely while seated.
+    if (presence === "away") store.toast("Status: away", "info")
+    else if (presence === "active") store.toast("Status: active", "info")
   }, [])
 
   const sitAtDesk = useCallback(() => {
     bridge.emit("sitAtDesk", true)
     useStore.getState().setPresence("idle")
     net.send({ t: "flags", presence: "idle" })
+    useStore.getState().toast("Seated at your desk", "info")
   }, [])
 
   const react = useCallback((emoji: Reaction) => net.send({ t: "react", emoji }), [])
@@ -358,7 +374,7 @@ export default function App() {
               x: me.x,
               y: me.y,
               dir: me.dir,
-              sit: me.pose === "sit" || me.presence === "idle" || me.presence === "away",
+              sit: me.pose === "sit" || me.presence === "idle",
             })
           }
         }}

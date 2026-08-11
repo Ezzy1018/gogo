@@ -160,11 +160,18 @@
 
 .minimap__stage {
   position: relative;
-  flex: 1;
   border-radius: var(--r-sm);
   border: 2px solid var(--border-strong);
   background: var(--map-floor);
   overflow: hidden;
+  flex: 0 0 auto;
+}
+
+.minimap__world {
+  position: absolute;
+  left: 0;
+  top: 0;
+  will-change: transform;
 }
 
 .minimap__zone {

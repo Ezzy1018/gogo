@@ -22,7 +22,7 @@ import {
 import type { CharacterConfig, Dir, PlayerState } from "../shared/types"
 import { bridge, type ZoneInfo } from "./bridge"
 import { allLayerKeys, ensureCharacterTexture, animKey } from "./character"
-import { DESK_SIT_RANGE_TILES, deskLabelPx, deskSeatPx, getDesk } from "../shared/desks"
+import { DESK_SLOTS, DESK_SIT_RANGE_TILES, deskLabelPx, deskSeatPx, getDesk } from "../shared/desks"
 
 type ZoneRect = ZoneInfo & { rect: Phaser.Geom.Rectangle }
 
@@ -51,6 +51,7 @@ const DEPTH = {
   avatars: 10,
   above: 20,
   weather: 24,
+  deskLabel: 28,
   vignette: 30,
 } as const
 
@@ -122,8 +123,12 @@ export class MainScene extends Phaser.Scene {
     this.buildZones()
     this.buildLocalPlayer()
     this.buildAtmosphere()
+    this.buildInteractables()
     this.buildInput()
     this.wireBridge()
+
+    // Claimed desks get hover labels once players arrive; seed empty slots quietly.
+    for (const desk of DESK_SLOTS) this.upsertDeskLabel(desk.id, null, false)
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.unsubscribe.forEach((fn) => fn())
@@ -469,7 +474,9 @@ export class MainScene extends Phaser.Scene {
   private upsertDeskLabel(deskId: number, ownerName: string | null, isMine: boolean) {
     const desk = getDesk(deskId)
     if (!desk) return
+    // Float above the monitor so the name is never buried under furniture.
     const pos = deskLabelPx(desk)
+    const hoverY = pos.y - 10
     let label = this.deskLabels.get(deskId)
     const text = ownerName ? ownerName + "'s desk" : "Open desk"
     if (!label) {
@@ -481,21 +488,100 @@ export class MainScene extends Phaser.Scene {
           resolution: 2,
         })
         .setOrigin(0.5, 1)
-      const w = Math.ceil(plate.width) + 8
-      const h = Math.ceil(plate.height) + 4
+      const w = Math.ceil(plate.width) + 10
+      const h = Math.ceil(plate.height) + 6
       const bg = this.add.graphics()
-      bg.fillStyle(isMine ? 0xd8f0ee : 0xfdf8ee, 0.92)
+      bg.fillStyle(isMine ? 0xd8f0ee : 0xfdf8ee, 0.96)
       bg.lineStyle(1, isMine ? 0x2e8b8b : 0x4a3428, 1)
       bg.fillRoundedRect(-w / 2, -h, w, h, 3)
       bg.strokeRoundedRect(-w / 2, -h, w, h, 3)
-      label = this.add.container(pos.x, pos.y, [bg, plate])
-      label.setDepth(DEPTH.furniture + 0.5)
+      label = this.add.container(pos.x, hoverY, [bg, plate])
+      label.setDepth(DEPTH.deskLabel)
+      label.setAlpha(0)
+      label.setScale(0.92)
       ;(label as Phaser.GameObjects.Container & { plateText?: Phaser.GameObjects.Text }).plateText = plate
       this.deskLabels.set(deskId, label)
+
+      const hit = this.add
+        .zone(pos.x, desk.deskTY * TILE_SIZE + TILE_SIZE / 2, TILE_SIZE * 2.2, TILE_SIZE * 2.4)
+        .setInteractive({ useHandCursor: true })
+      hit.setDepth(DEPTH.furniture + 0.2)
+      hit.on("pointerover", () => {
+        this.tweens.killTweensOf(label!)
+        this.tweens.add({
+          targets: label!,
+          alpha: 1,
+          y: hoverY - 6,
+          scale: 1,
+          duration: 140,
+          ease: "Sine.easeOut",
+        })
+      })
+      hit.on("pointerout", () => {
+        this.tweens.killTweensOf(label!)
+        this.tweens.add({
+          targets: label!,
+          alpha: 0,
+          y: hoverY,
+          scale: 0.92,
+          duration: 160,
+          ease: "Sine.easeIn",
+        })
+      })
     } else {
       const plate = (label as Phaser.GameObjects.Container & { plateText?: Phaser.GameObjects.Text }).plateText
       if (plate && plate.text !== text) plate.setText(text)
-      label.setPosition(pos.x, pos.y)
+      label.setPosition(pos.x, label.y)
+    }
+  }
+
+  private buildInteractables() {
+    // Light flavor hotspots — confined props, not floor clutter.
+    const spots: Array<{ x: number; y: number; label: string }> = [
+      { x: 29.5, y: 4.5, label: "Water cooler" },
+      { x: 40, y: 20, label: "Kitchen counter" },
+      { x: 45, y: 9, label: "Meeting table" },
+      { x: 14, y: 28, label: "Lounge sofa" },
+      { x: 52, y: 30, label: "Focus booth" },
+    ]
+    for (const spot of spots) {
+      const baseX = spot.x * TILE_SIZE
+      const baseY = spot.y * TILE_SIZE - 18
+      const tip = this.add
+        .text(baseX, baseY, spot.label, {
+          fontFamily: "Silkscreen, monospace",
+          fontSize: "7px",
+          color: "#4A3428",
+          resolution: 2,
+        })
+        .setOrigin(0.5, 1)
+        .setDepth(DEPTH.deskLabel)
+        .setAlpha(0)
+      const bg = this.add.graphics().setDepth(DEPTH.deskLabel - 0.01).setAlpha(0)
+      const drawBg = () => {
+        const w = Math.ceil(tip.width) + 10
+        const h = Math.ceil(tip.height) + 6
+        bg.clear()
+        bg.fillStyle(0xfdf8ee, 0.95)
+        bg.lineStyle(1, 0x4a3428, 1)
+        bg.fillRoundedRect(tip.x - w / 2, tip.y - h, w, h, 3)
+        bg.strokeRoundedRect(tip.x - w / 2, tip.y - h, w, h, 3)
+      }
+      drawBg()
+      const hit = this.add
+        .zone(spot.x * TILE_SIZE, spot.y * TILE_SIZE, TILE_SIZE * 1.6, TILE_SIZE * 1.6)
+        .setInteractive({ useHandCursor: true })
+      hit.on("pointerover", () => {
+        tip.setPosition(baseX, baseY - 4)
+        drawBg()
+        this.tweens.killTweensOf([tip, bg])
+        this.tweens.add({ targets: [tip, bg], alpha: 1, duration: 120, ease: "Sine.easeOut" })
+      })
+      hit.on("pointerout", () => {
+        tip.setPosition(baseX, baseY)
+        this.tweens.killTweensOf([tip, bg])
+        this.tweens.add({ targets: [tip, bg], alpha: 0, duration: 120, ease: "Sine.easeIn" })
+      })
     }
   }
 

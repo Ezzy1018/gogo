@@ -270,18 +270,23 @@ put(decor, 26, 36, "plant_small")
 zone("desk", "Your Desk", 4, 6, 8, 4, False, "🏠")
 
 # ---------------- density pass ----------------
-# scatter small decor on any empty walkable floor tile, target ~1 per 3-4 tiles
-SCATTER = ["clutter", "plant_small", "boxes", "stool"]
+# A light sprinkle only inside room zones — hallways stay clear.
+SCATTER = ["plant_small"]
 placed = 0
-for y in range(3, H - 2):
-    for x in range(2, W - 2):
-        i = y * W + x
-        if coll[i] or furn[i] or decor[i] or above[i]:
-            continue
-        if rnd.random() < 0.035:
-            name = rnd.choice(SCATTER)
-            put(decor, x, y, name)
-            placed += 1
+for (x0, y0, x1, y1, rate) in [
+    (3, 4, 28, 20, 0.01),
+    (35, 4, 55, 13, 0.008),
+    (35, 18, 55, 23, 0.012),
+    (3, 24, 24, 32, 0.01),
+]:
+    for y in range(y0, y1):
+        for x in range(x0, x1):
+            i = y * W + x
+            if coll[i] or furn[i] or decor[i] or above[i]:
+                continue
+            if rnd.random() < rate:
+                put(decor, x, y, rnd.choice(SCATTER))
+                placed += 1
 
 
 def layer(name, data, visible=True, opacity=1.0):
